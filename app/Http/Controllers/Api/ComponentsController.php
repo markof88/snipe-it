@@ -217,7 +217,10 @@ class ComponentsController extends Controller
     {
         $this->authorize('update', Component::class);
         $component = Component::findOrFail($id);
-        $component->fill($request->all());
+        // qty, order_number, and supplier_id are not editable on update.
+        // See Component::getOrderNumberAttribute /
+        // getSupplierIdAttribute for rationale.
+        $component->fill($request->except(['qty', 'order_number', 'supplier_id']));
         $component->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $component = $request->handleImages($component);
 

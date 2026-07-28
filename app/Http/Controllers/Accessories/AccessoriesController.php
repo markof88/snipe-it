@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Accessories;
 
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Models\Accessory;
 use App\Models\Company;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 
 /** This controller handles all actions related to Accessories for
  * the Snipe-IT Asset Management application.
@@ -159,31 +160,26 @@ class AccessoriesController extends Controller
     {
         $this->authorize('update', $accessory);
 
-        if ($accessory = Accessory::withCount('checkouts as checkouts_count')->find($accessory->id)) {
+        if ($accessory = Accessory::find($accessory->id)) {
 
-            $validator = Validator::make($request->all(), [
-                'qty' => "required|numeric|min:$accessory->checkouts_count",
-            ]);
-
-            if ($validator->fails()) {
-                return redirect()->back()
-                    ->withErrors($validator)
-                    ->withInput();
-            }
-
-            // Update the accessory data
+            // qty, order_number, and supplier_id are intentionally NOT
+            // accepted on update. On-hand qty is managed via the
+            // adjust-quantity modal (see AdjustsQuantity trait); each
+            // change becomes a QuantityAdjust action_log entry rather
+            // than a silent overwrite. order_number and supplier_id are
+            // captured onto the create action_log at create time — a
+            // single value for either on many-batches inventory is
+            // misleading, so both are hidden by model accessors and any
+            // input here is ignored.
             $accessory->name = request('name');
             $accessory->location_id = request('location_id');
             $accessory->min_amt = request('min_amt');
             $accessory->category_id = request('category_id');
             $accessory->company_id = Company::getIdForCurrentUser(request('company_id'));
             $accessory->manufacturer_id = request('manufacturer_id');
-            $accessory->order_number = request('order_number');
             $accessory->model_number = request('model_number');
             $accessory->purchase_date = request('purchase_date');
             $accessory->purchase_cost = request('purchase_cost');
-            $accessory->qty = request('qty');
-            $accessory->supplier_id = request('supplier_id');
             $accessory->notes = request('notes');
             $accessory->requestable = request('requestable', 0);
 
@@ -250,5 +246,28 @@ class AccessoriesController extends Controller
         $accessory->load(['adminuser' => fn ($query) => $query->withTrashed()]);
 
         return view('accessories.view', compact('accessory'));
+    }
+
+    /**
+     * Apply an on-hand quantity delta (+/-) and log the change.
+     * Direction + amount from the form are converted to a signed delta
+     * for the AdjustsQuantity trait. Below-zero attempts surface as a
+     * flash error rather than a 500.
+     */
+    public function adjustQuantity(AdjustQuantityRequest $request, Accessory $accessory): RedirectResponse
+    {
+        $this->authorize('update', $accessory);
+
+        try {
+            $accessory->adjustQuantity(
+                (int) $request->input('amount'),
+                $request->input('note'),
+                $request->input('order_number'),
+            );
+        } catch (DomainException) {
+            return redirect()->back()->with('error', trans('general.adjust_quantity_below_zero'));
+        }
+
+        return redirect()->back()->with('success', trans('general.adjust_quantity_success'));
     }
 }

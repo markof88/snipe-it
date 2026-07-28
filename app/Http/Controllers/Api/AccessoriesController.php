@@ -271,7 +271,11 @@ class AccessoriesController extends Controller
     {
         $this->authorize('update', Accessory::class);
         $accessory = Accessory::findOrFail($id);
-        $accessory->fill($request->all());
+        // qty, order_number, and supplier_id are not editable on update
+        // — see Accessory::getOrderNumberAttribute /
+        // getSupplierIdAttribute for rationale. qty changes go through
+        // the adjust-quantity endpoint.
+        $accessory->fill($request->except(['qty', 'order_number', 'supplier_id']));
         $accessory->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $accessory = $request->handleImages($accessory);
 

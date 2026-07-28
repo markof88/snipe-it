@@ -205,7 +205,10 @@ class ConsumablesController extends Controller
     {
         $this->authorize('update', Consumable::class);
         $consumable = Consumable::findOrFail($id);
-        $consumable->fill($request->all());
+        // qty, order_number, and supplier_id are not editable on update.
+        // See Consumable::getOrderNumberAttribute /
+        // getSupplierIdAttribute for rationale.
+        $consumable->fill($request->except(['qty', 'order_number', 'supplier_id']));
         $consumable->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $consumable = $request->handleImages($consumable);
 
