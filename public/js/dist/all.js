@@ -74701,6 +74701,24 @@ $(function () {
     $('#completeMaintenanceModal').modal('show');
   });
 
+  // Adjust-quantity modal (plus-minus button on accessory/consumable/
+  // component list and view pages). Sets the modal form's action from
+  // the trigger's data-adjust-url and populates the header + current
+  // quantity display from the trigger's data attributes. Clears the
+  // signed amount + note + order every open so nothing bleeds between
+  // clicks.
+  $el.on('click', '.adjust-quantity', function () {
+    var $btn = $(this);
+    var $modal = $('#adjustQuantityModal');
+    $('#adjustQuantityForm').attr('action', $btn.data('adjust-url'));
+    $modal.find('.adjust-quantity-item-name').text($btn.data('item-name') || '');
+    $modal.find('.adjust-quantity-current').text($btn.data('current-qty') != null ? $btn.data('current-qty') : '');
+    $modal.find('#adjustQuantityAmount').val('');
+    $modal.find('#adjustQuantityOrder').val('');
+    $modal.find('#adjustQuantityNote').val('');
+    $modal.modal('show');
+  });
+
   // confirm delete modal
   $el.on('click', '.delete-asset', function (evnt) {
     var $context = $(this);
