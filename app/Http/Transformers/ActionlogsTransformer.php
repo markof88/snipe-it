@@ -399,6 +399,7 @@ class ActionlogsTransformer
             ActionType::CheckinFrom->value,
             ActionType::AddSeats->value,
             ActionType::DeleteSeats->value,
+            ActionType::QuantityAdjust->value,
         ])) {
             return null;
         }
