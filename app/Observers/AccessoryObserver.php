@@ -32,6 +32,9 @@ class AccessoryObserver
             $logAction->item_id = $accessory->id;
             $logAction->created_at = date('Y-m-d H:i:s');
             $logAction->created_by = auth()->id();
+            // Accessor on Accessory returns null for order_number; read
+            // the raw stored value so the log captures the actual value.
+            $logAction->order_number = $accessory->getRawOriginal('order_number');
             $logAction->log_meta = json_encode($changed);
             $logAction->logaction('update');
         }
@@ -50,6 +53,7 @@ class AccessoryObserver
         $logAction->item_id = $accessory->id;
         $logAction->created_at = date('Y-m-d H:i:s');
         $logAction->created_by = auth()->id();
+        $logAction->order_number = $accessory->order_number;
         if ($accessory->imported) {
             $logAction->setActionSource('importer');
         }

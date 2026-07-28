@@ -33,6 +33,9 @@ class ConsumableObserver
             $logAction->item_id = $consumable->id;
             $logAction->created_at = date('Y-m-d H:i:s');
             $logAction->created_by = auth()->id();
+            // Accessor on Consumable returns null for order_number; read
+            // the raw stored value so the log captures the actual value.
+            $logAction->order_number = $consumable->getRawOriginal('order_number');
             $logAction->log_meta = json_encode($changed);
             $logAction->logaction('update');
         }
@@ -51,6 +54,7 @@ class ConsumableObserver
         $logAction->item_id = $consumable->id;
         $logAction->created_at = date('Y-m-d H:i:s');
         $logAction->created_by = auth()->id();
+        $logAction->order_number = $consumable->order_number;
         if ($consumable->imported) {
             $logAction->setActionSource('importer');
         }

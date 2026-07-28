@@ -32,6 +32,9 @@ class ComponentObserver
             $logAction->created_at = date('Y-m-d H:i:s');
             $logAction->action_date = date('Y-m-d H:i:s');
             $logAction->created_by = auth()->id();
+            // Accessor on Component returns null for order_number; read
+            // the raw stored value so the log captures the actual value.
+            $logAction->order_number = $component->getRawOriginal('order_number');
             $logAction->log_meta = json_encode($changed);
             if ($component->imported) {
                 $logAction->setActionSource('importer');
@@ -55,6 +58,7 @@ class ComponentObserver
         $logAction->created_at = date('Y-m-d H:i:s');
         $logAction->action_date = date('Y-m-d H:i:s');
         $logAction->created_by = auth()->id();
+        $logAction->order_number = $component->order_number;
         if ($component->imported) {
             $logAction->setActionSource('importer');
         }
