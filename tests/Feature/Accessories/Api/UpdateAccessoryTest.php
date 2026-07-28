@@ -111,6 +111,11 @@ class UpdateAccessoryTest extends TestCase implements TestsFullMultipleCompanies
             'supplier_id' => $supplierA->id,
         ]);
 
+        // qty and order_number are no longer accepted on update
+        // (mirrors the UI edit form). Submitting values for them here
+        // just proves they don't persist: qty changes go through the
+        // adjust-quantity endpoint, and order_number is captured onto
+        // the create action_log at create time.
         $this->actingAsForApi(User::factory()->editAccessories()->create())
             ->patchJson(route('api.accessories.update', $accessory), [
                 'name' => 'A New Name',
@@ -128,15 +133,15 @@ class UpdateAccessoryTest extends TestCase implements TestsFullMultipleCompanies
 
         $accessory = $accessory->fresh();
         $this->assertEquals('A New Name', $accessory->name);
-        $this->assertEquals(10, $accessory->qty);
-        $this->assertEquals('B54321', $accessory->order_number);
+        $this->assertEquals(5, $accessory->qty); // unchanged
+        $this->assertEquals('A12345', $accessory->getRawOriginal('order_number')); // unchanged; accessor hides it
+        $this->assertEquals($supplierA->id, $accessory->getRawOriginal('supplier_id')); // unchanged; accessor hides it
         $this->assertEquals(199.99, $accessory->purchase_cost);
         $this->assertEquals('XYZ123', $accessory->model_number);
         $this->assertEquals($categoryB->id, $accessory->category_id);
         $this->assertEquals($companyB->id, $accessory->company_id);
         $this->assertEquals($locationB->id, $accessory->location_id);
         $this->assertEquals($manufacturerB->id, $accessory->manufacturer_id);
-        $this->assertEquals($supplierB->id, $accessory->supplier_id);
     }
 
     public function test_update_logs_changed_fields_in_log_meta()
@@ -155,9 +160,10 @@ class UpdateAccessoryTest extends TestCase implements TestsFullMultipleCompanies
         $this->assertNotNull($log, 'No update log entry was created');
         $this->assertNotNull($log->log_meta, 'log_meta was not stored');
 
+        // qty is no longer editable via update; log_meta only captures
+        // fields the endpoint actually accepts.
         $meta = json_decode($log->log_meta, true);
-        $this->assertEquals('5', $meta['qty']['old']);
-        $this->assertEquals('10', $meta['qty']['new']);
+        $this->assertArrayNotHasKey('qty', $meta);
         $this->assertEquals('Old Name', $meta['name']['old']);
         $this->assertEquals('New Name', $meta['name']['new']);
     }
