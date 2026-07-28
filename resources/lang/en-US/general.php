@@ -14,7 +14,6 @@ return [
     'activity_report' => 'Activity Report',
     'address' => 'Address',
     'adjust_quantity' => 'Adjust Quantity',
-    'adjust_quantity_help' => 'Change the on-hand quantity and record why. Positive number replenishes; negative number decreases.',
     'adjust_quantity_success' => 'Quantity adjusted successfully.',
     'adjust_quantity_amount' => 'Amount to add or remove',
     'adjust_quantity_amount_help' => 'Positive to replenish (e.g. 5), negative to decrease (e.g. -3). Must not be zero.',

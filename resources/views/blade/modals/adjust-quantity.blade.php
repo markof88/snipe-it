@@ -12,8 +12,6 @@
             <form id="adjustQuantityForm" method="POST" action="">
                 @csrf
                 <div class="modal-body">
-                    <p class="text-muted">{{ trans('general.adjust_quantity_help') }}</p>
-
                     <p>
                         {{ trans('general.available') }}:
                         <strong class="adjust-quantity-available"></strong>
