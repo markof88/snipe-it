@@ -29,7 +29,9 @@ Route::group(['prefix' => 'components', 'middleware' => ['auth']], function () {
         [Components\ComponentsController::class, 'getClone']
     )->name('components.clone.create');
 
-
+    Route::post('{component}/adjust-quantity',
+        [Components\ComponentsController::class, 'adjustQuantity']
+    )->name('components.adjust-quantity');
 
 });
 
