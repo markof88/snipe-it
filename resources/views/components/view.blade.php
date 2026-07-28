@@ -74,7 +74,7 @@
                                 title="{{ trans('general.adjust_quantity') }}"
                                 data-adjust-url="{{ route('components.adjust-quantity', $snipe_component) }}"
                                 data-item-name="{{ e($snipe_component->name) }}"
-                                data-current-qty="{{ (int) $snipe_component->qty }}"
+                                data-available="{{ (int) $snipe_component->numRemaining() }}"
                             >
                                 <x-icon type="plus-minus" class="fa-fw" />
                                 <span class="sr-only">{{ trans('general.adjust_quantity') }}</span>

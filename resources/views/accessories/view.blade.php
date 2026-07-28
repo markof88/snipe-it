@@ -78,7 +78,7 @@
                                 title="{{ trans('general.adjust_quantity') }}"
                                 data-adjust-url="{{ route('accessories.adjust-quantity', $accessory) }}"
                                 data-item-name="{{ e($accessory->name) }}"
-                                data-current-qty="{{ (int) $accessory->qty }}"
+                                data-available="{{ (int) $accessory->numRemaining() }}"
                             >
                                 <x-icon type="plus-minus" class="fa-fw" />
                                 <span class="sr-only">{{ trans('general.adjust_quantity') }}</span>

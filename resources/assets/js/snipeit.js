@@ -158,10 +158,28 @@ $(function () {
     $el.on('click', '.adjust-quantity', function () {
         var $btn = $(this);
         var $modal = $('#adjustQuantityModal');
+        var $amount = $modal.find('#adjustQuantityAmount');
+
+        // data-available is the trigger's authoritative floor for a decrement
+        // (available = qty - currentlyInUseCount). A delta smaller than
+        // -available would decrement the on-hand qty below what's already
+        // checked out, and AdjustsQuantity::adjustQuantity throws
+        // DomainException. Mirror that server-side floor on the input's min
+        // attribute so the browser stepper refuses to go below and the
+        // constraint-validation message surfaces before submit.
+        var available = parseInt($btn.data('available'), 10);
+
         $('#adjustQuantityForm').attr('action', $btn.data('adjust-url'));
         $modal.find('.adjust-quantity-item-name').text($btn.data('item-name') || '');
-        $modal.find('.adjust-quantity-current').text($btn.data('current-qty') != null ? $btn.data('current-qty') : '');
-        $modal.find('#adjustQuantityAmount').val('');
+        $modal.find('.adjust-quantity-available').text(!isNaN(available) ? available : '');
+
+        if (!isNaN(available)) {
+            $amount.attr('min', -available);
+        } else {
+            $amount.removeAttr('min');
+        }
+
+        $amount.val('');
         $modal.find('#adjustQuantityOrder').val('');
         $modal.find('#adjustQuantityNote').val('');
         $modal.modal('show');

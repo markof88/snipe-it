@@ -15,12 +15,15 @@
                     <p class="text-muted">{{ trans('general.adjust_quantity_help') }}</p>
 
                     <p>
-                        {{ trans('general.quantity') }}:
-                        <strong class="adjust-quantity-current"></strong>
+                        {{ trans('general.available') }}:
+                        <strong class="adjust-quantity-available"></strong>
                     </p>
 
                     <div class="form-group">
                         <label for="adjustQuantityAmount">{{ trans('general.adjust_quantity_amount') }}</label>
+                        {{-- min is populated by snipeit.js when the modal opens (–available). The
+                             browser stepper then refuses to go below and the built-in
+                             constraint-validation message surfaces if a user types past it. --}}
                         <input type="number" class="form-control" id="adjustQuantityAmount" name="amount" step="1" required>
                         <p class="help-block">{{ trans('general.adjust_quantity_amount_help') }}</p>
                     </div>
@@ -32,7 +35,9 @@
 
                     <div class="form-group">
                         <label for="adjustQuantityNote">{{ trans('general.notes') }}</label>
-                        <textarea class="form-control" id="adjustQuantityNote" name="note" rows="3" required></textarea>
+                        {{-- maxlength mirrors the server rule (max:65535 in AdjustQuantityRequest)
+                             so the browser refuses characters past the limit before submit. --}}
+                        <textarea class="form-control" id="adjustQuantityNote" name="note" rows="3" maxlength="65535" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

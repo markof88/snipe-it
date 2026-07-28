@@ -2218,7 +2218,7 @@
                 actions += '<button type="button" class="actions btn btn-sm btn-primary hidden-print adjust-quantity" data-tooltip="true" title="{{ trans('general.adjust_quantity') }}"'
                     + ' data-adjust-url="{{ config('app.url') }}/' + dest + '/' + row.id + '/adjust-quantity"'
                     + ' data-item-name="' + (row.name || '') + '"'
-                    + ' data-current-qty="' + (row.qty != null ? row.qty : '') + '">'
+                    + ' data-available="' + (row.remaining != null ? row.remaining : '') + '">'
                     + '<x-icon type="plus-minus" class="fa-fw" /><span class="sr-only">{{ trans('general.adjust_quantity') }}</span></button>&nbsp;';
             }
 
