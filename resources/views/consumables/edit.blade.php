@@ -42,15 +42,22 @@
                     categoryType="consumable"
                 />
 
-                <x-input.quantity :item="$item"/>
+                {{-- qty is create-only: after creation, on-hand qty is
+                     managed via the adjust-quantity modal. --}}
+                @if (! $item->id)
+                    <x-input.quantity :item="$item"/>
+                @endif
 
                 <x-input.minimum-quantity :item="$item"/>
 
-                <x-input.supplier-select
-                    :label="trans('general.supplier')"
-                    name="supplier_id"
-                    :selected="old('supplier_id', $item->supplier_id)"
-                />
+                {{-- Create-only. See accessories/edit for rationale. --}}
+                @if (! $item->id)
+                    <x-input.supplier-select
+                        :label="trans('general.supplier')"
+                        name="supplier_id"
+                        :selected="old('supplier_id', $item->getRawOriginal('supplier_id'))"
+                    />
+                @endif
 
                 <x-input.manufacturer-select
                     :label="trans('general.manufacturer')"
@@ -76,11 +83,14 @@
                     name="item_no"
                 />
 
-                <x-form.row
-                    :label="trans('general.order_number')"
-                    :$item
-                    name="order_number"
-                />
+                {{-- Create-only. See accessories/edit for rationale. --}}
+                @if (! $item->id)
+                    <x-form.row
+                        :label="trans('general.order_number')"
+                        :$item
+                        name="order_number"
+                    />
+                @endif
 
                 <x-form.row
                     :label="trans('general.purchase_date')"

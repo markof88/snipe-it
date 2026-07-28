@@ -42,11 +42,16 @@
                 categoryType="accessory"
             />
 
-            <x-input.supplier-select
-                :label="trans('general.supplier')"
-                name="supplier_id"
-                :selected="old('supplier_id', $item->supplier_id)"
-            />
+            {{-- supplier_id is create-only. Same rationale as
+                 order_number: a single supplier on many-batches inventory
+                 misrepresents where units came from. --}}
+            @if (! $item->id)
+                <x-input.supplier-select
+                    :label="trans('general.supplier')"
+                    name="supplier_id"
+                    :selected="old('supplier_id', $item->getRawOriginal('supplier_id'))"
+                />
+            @endif
 
             <x-input.manufacturer-select
                 :label="trans('general.manufacturer')"
@@ -66,11 +71,21 @@
                 name="model_number"
             />
 
-            <x-form.row
-                :label="trans('general.order_number')"
-                :$item
-                name="order_number"
-            />
+            {{-- order_number and qty are create-only. After creation,
+                 on-hand qty is managed via the adjust-quantity modal so
+                 every change becomes a QuantityAdjust action_log entry
+                 (with its own note + order_number) instead of a silent
+                 overwrite. Correcting a create-time order_number typo
+                 isn't supported today; a dedicated Orders model built
+                 out from action_log history is the plan if it's asked
+                 for. --}}
+            @if (! $item->id)
+                <x-form.row
+                    :label="trans('general.order_number')"
+                    :$item
+                    name="order_number"
+                />
+            @endif
 
             <x-form.row
                 :label="trans('general.purchase_date')"
@@ -86,7 +101,9 @@
                 :currencyType="$item->location->currency ?? null"
             />
 
-            <x-input.quantity :item="$item" min="0" />
+            @if (! $item->id)
+                <x-input.quantity :item="$item" min="0" />
+            @endif
 
             <x-input.minimum-quantity :item="$item" />
 
