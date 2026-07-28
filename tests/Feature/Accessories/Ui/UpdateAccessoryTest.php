@@ -90,6 +90,16 @@ class UpdateAccessoryTest extends TestCase
                 'qty' => 5,
             ]);
 
+        // qty, order_number, and supplier_id are no longer editable via
+        // the accessory edit form; any values in the request are ignored
+        // server-side. qty changes go through the adjust-quantity modal
+        // (see AdjustAccessoryQuantityTest); order_number and
+        // supplier_id are captured onto the create action_log at create
+        // time. Submitting them here just proves they don't persist
+        // through update.
+        $originalOrderNumber = $accessory->getRawOriginal('order_number');
+        $originalSupplierId = $accessory->getRawOriginal('supplier_id');
+
         $this->actingAs(User::factory()->editAccessories()->create())
             ->put(route('accessories.update', $accessory), [
                 'redirect_option' => 'index',
@@ -113,14 +123,14 @@ class UpdateAccessoryTest extends TestCase
             'company_id' => $companyB->id,
             'name' => 'Changed Name',
             'category_id' => $categoryB->id,
-            'supplier_id' => $supplierB->id,
+            'supplier_id' => $originalSupplierId, // untouched by update
             'manufacturer_id' => $manufacturerB->id,
             'location_id' => $locationB->id,
             'model_number' => 'changed 1234',
-            'order_number' => 'changed 5678',
+            'order_number' => $originalOrderNumber, // untouched by update
             'purchase_date' => '2024-10-11',
             'purchase_cost' => '83.52',
-            'qty' => '7',
+            'qty' => '5', // unchanged from factory value; edit ignores qty
             'min_amt' => '10',
             'notes' => 'A new note',
         ]);
@@ -139,7 +149,6 @@ class UpdateAccessoryTest extends TestCase
             ->put(route('accessories.update', $accessory), [
                 'redirect_option' => 'index',
                 'name' => 'New Name',
-                'qty' => '10',
                 'category_id' => (string) $accessory->category_id,
             ]);
 
@@ -152,9 +161,10 @@ class UpdateAccessoryTest extends TestCase
         $this->assertNotNull($log, 'No update log entry was created');
         $this->assertNotNull($log->log_meta, 'log_meta was not stored');
 
+        // qty is no longer editable via update; log_meta captures only
+        // the fields the edit form can actually change.
         $meta = json_decode($log->log_meta, true);
-        $this->assertEquals('5', $meta['qty']['old']);
-        $this->assertEquals('10', $meta['qty']['new']);
+        $this->assertArrayNotHasKey('qty', $meta);
         $this->assertEquals('Old Name', $meta['name']['old']);
         $this->assertEquals('New Name', $meta['name']['new']);
     }

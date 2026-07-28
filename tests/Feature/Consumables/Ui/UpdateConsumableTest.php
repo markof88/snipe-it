@@ -57,54 +57,47 @@ class UpdateConsumableTest extends TestCase
             ->assertStatus(302);
     }
 
-    public function test_cannot_set_quantity_to_amount_lower_than_what_is_checked_out()
-    {
-        $user = User::factory()->createConsumables()->editConsumables()->create();
-        $consumable = Consumable::factory()->create(['qty' => 2]);
-
-        $consumable->users()->attach($consumable->id, ['consumable_id' => $consumable->id, 'assigned_to' => $user->id]);
-        $consumable->users()->attach($consumable->id, ['consumable_id' => $consumable->id, 'assigned_to' => $user->id]);
-
-        $this->assertEquals(2, $consumable->numCheckedOut());
-
-        $this->actingAs($user)
-            ->put(route('consumables.update', $consumable->id), [
-                'qty' => 1,
-                'redirect_option' => 'index',
-                'category_type' => 'consumable',
-            ])
-            ->assertSessionHasErrors('qty');
-
-    }
-
     public function test_can_update_consumable()
     {
         $consumable = Consumable::factory()->create();
+        $originalQty = (int) $consumable->qty;
+        $originalOrderNumber = $consumable->getRawOriginal('order_number');
 
-        $data = [
+        // qty, order_number, and supplier_id are no longer editable via
+        // update; any values in the request are ignored server-side. qty
+        // changes go through the adjust-quantity modal (see
+        // AdjustConsumableQuantityTest); order_number and supplier_id
+        // are captured onto the create action_log at create time.
+        $originalSupplierId = $consumable->getRawOriginal('supplier_id');
+
+        $editable = [
             'company_id' => Company::factory()->create()->id,
             'name' => 'My Consumable',
             'category_id' => Category::factory()->consumableInkCategory()->create()->id,
-            'supplier_id' => Supplier::factory()->create()->id,
             'manufacturer_id' => Manufacturer::factory()->create()->id,
             'location_id' => Location::factory()->create()->id,
             'model_number' => '8765',
             'item_no' => '5678',
-            'order_number' => '908',
             'purchase_date' => '2024-12-05',
             'purchase_cost' => '89.45',
-            'qty' => '9',
             'min_amt' => '7',
             'notes' => 'Some Notes',
         ];
 
         $this->actingAs(User::factory()->createConsumables()->editConsumables()->create())
-            ->put(route('consumables.update', $consumable), $data + [
+            ->put(route('consumables.update', $consumable), $editable + [
                 'redirect_option' => 'index',
                 'category_type' => 'consumable',
+                'order_number' => 'ignored-908',
+                'qty' => '9999',
+                'supplier_id' => Supplier::factory()->create()->id,
             ])
             ->assertRedirect(route('consumables.index'));
 
-        $this->assertDatabaseHas('consumables', $data);
+        $this->assertDatabaseHas('consumables', $editable + [
+            'qty' => $originalQty,
+            'order_number' => $originalOrderNumber,
+            'supplier_id' => $originalSupplierId,
+        ]);
     }
 }
