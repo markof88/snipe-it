@@ -180,12 +180,19 @@ class UpdateAccessoryTest extends TestCase
             ->where('action_type', 'update')
             ->count();
 
+        // Echo persisted values back for every field the controller sets
+        // unconditionally from the request. A missing key on the payload
+        // coerces to null server-side and marks the model dirty, which
+        // trips the update-log observer. Pre-existing quirk in the web
+        // update, not introduced by these tests.
         $this->actingAs(User::factory()->editAccessories()->create())
             ->put(route('accessories.update', $accessory), [
                 'redirect_option' => 'index',
                 'name' => 'Same Name',
                 'qty' => '5',
                 'category_id' => (string) $accessory->category_id,
+                'purchase_date' => $accessory->purchase_date?->format('Y-m-d'),
+                'purchase_cost' => $accessory->purchase_cost,
             ]);
 
         $after = Actionlog::where('item_type', Accessory::class)
