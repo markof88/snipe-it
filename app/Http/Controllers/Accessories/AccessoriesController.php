@@ -264,8 +264,8 @@ class AccessoriesController extends Controller
         $filename = null;
         if ($request->hasFile('file')) {
             $filename = app(UploadFileRequest::class)->handleFile(
-                parent::$map_storage_path['accessories'],
-                parent::$map_file_prefix['accessories'].'-'.$accessory->id,
+                parent::getMapStoragePath()['accessories'],
+                parent::getMapFilePrefix()['accessories'].'-'.$accessory->id,
                 $request->file('file'),
             );
         }

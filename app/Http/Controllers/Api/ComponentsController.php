@@ -263,8 +263,8 @@ class ComponentsController extends Controller
         $filename = null;
         if ($request->hasFile('file')) {
             $filename = app(UploadFileRequest::class)->handleFile(
-                parent::$map_storage_path['components'],
-                parent::$map_file_prefix['components'].'-'.$component->id,
+                parent::getMapStoragePath()['components'],
+                parent::getMapFilePrefix()['components'].'-'.$component->id,
                 $request->file('file'),
             );
         }
