@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Helpers\Helper;
+use App\Rules\AllowedUploadExtension;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -30,9 +31,16 @@ class AdjustQuantityRequest extends FormRequest
             // Optional receipt/invoice/PO scan. Attaches to the same
             // QuantityAdjust action_log row via its filename column,
             // not a separate 'uploaded' entry, so the download surfaces
-            // inline with the replenish history. Same allowlist and size
-            // cap as the app-wide UploadFileRequest.
-            'file' => 'nullable|mimes:'.config('filesystems.allowed_upload_extensions_for_validator').'|max:'.Helper::file_upload_max_size(),
+            // inline with the replenish history. AllowedUploadExtension
+            // is the same rule UploadFileRequest uses post-#19389, so
+            // legit text uploads that trip libmagic quirks still get
+            // through without over-strict rejection.
+            'file' => [
+                'nullable',
+                'file',
+                new AllowedUploadExtension(config('filesystems.allowed_upload_extensions_array')),
+                'max:'.Helper::file_upload_max_size(),
+            ],
         ];
     }
 }
