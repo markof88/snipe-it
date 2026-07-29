@@ -251,8 +251,8 @@ class ConsumablesController extends Controller
         $filename = null;
         if ($request->hasFile('file')) {
             $filename = app(UploadFileRequest::class)->handleFile(
-                self::$map_storage_path['consumables'],
-                self::$map_file_prefix['consumables'].'-'.$consumable->id,
+                parent::$map_storage_path['consumables'],
+                parent::$map_file_prefix['consumables'].'-'.$consumable->id,
                 $request->file('file'),
             );
         }
