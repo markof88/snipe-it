@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Events\CheckoutableCheckedOut;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\FilterRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Http\Requests\StoreConsumableRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Http\Transformers\ActionlogsTransformer;
 use App\Http\Transformers\ConsumablesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
@@ -237,6 +239,41 @@ class ConsumablesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
+    }
+
+    /**
+     * See Api\AccessoriesController::adjustQuantity for the shape/contract.
+     */
+    public function adjustQuantity(AdjustQuantityRequest $request, Consumable $consumable): JsonResponse
+    {
+        $this->authorize('update', $consumable);
+
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['consumables'],
+                self::$map_file_prefix['consumables'].'-'.$consumable->id,
+                $request->file('file'),
+            );
+        }
+
+        try {
+            $consumable->adjustQuantity(
+                (int) $request->input('amount'),
+                $request->input('note'),
+                $request->input('order_number'),
+                $filename,
+            );
+        } catch (DomainException) {
+            return response()->json(
+                Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                422,
+            );
+        }
+
+        return response()->json(
+            Helper::formatStandardApiResponse('success', $consumable->fresh(), trans('general.adjust_quantity_success')),
+        );
     }
 
     /**

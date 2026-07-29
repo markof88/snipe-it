@@ -6,8 +6,10 @@ use App\Events\CheckoutableCheckedOut;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AccessoryCheckoutRequest;
+use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Http\Requests\StoreAccessoryRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Http\Traits\CheckInOutTrait;
 use App\Http\Transformers\AccessoriesTransformer;
 use App\Http\Transformers\ActionlogsTransformer;
@@ -309,6 +311,47 @@ class AccessoriesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.update.success')));
+    }
+
+    /**
+     * Dedicated adjust-quantity endpoint. Signed delta semantics: positive
+     * amount replenishes, negative decrements. Every call becomes a
+     * QuantityAdjust action_log entry. Note is required (unlike the
+     * general update path which synthesizes one). An optional file
+     * attachment lands on the same log row via UploadFileRequest::handleFile.
+     * See Api\AccessoriesController::update for the "qty inside PATCH"
+     * alternative preserved for API back-compat.
+     */
+    public function adjustQuantity(AdjustQuantityRequest $request, Accessory $accessory): JsonResponse
+    {
+        $this->authorize('update', $accessory);
+
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['accessories'],
+                self::$map_file_prefix['accessories'].'-'.$accessory->id,
+                $request->file('file'),
+            );
+        }
+
+        try {
+            $accessory->adjustQuantity(
+                (int) $request->input('amount'),
+                $request->input('note'),
+                $request->input('order_number'),
+                $filename,
+            );
+        } catch (DomainException) {
+            return response()->json(
+                Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                422,
+            );
+        }
+
+        return response()->json(
+            Helper::formatStandardApiResponse('success', $accessory->fresh(), trans('general.adjust_quantity_success')),
+        );
     }
 
     /**

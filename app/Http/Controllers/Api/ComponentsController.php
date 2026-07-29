@@ -6,7 +6,9 @@ use App\Events\CheckoutableCheckedIn;
 use App\Exceptions\MissingLogTarget;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\ImageUploadRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Http\Transformers\ActionlogsTransformer;
 use App\Http\Transformers\ComponentsTransformer;
 use App\Models\Asset;
@@ -249,6 +251,41 @@ class ComponentsController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $component, trans('admin/components/message.update.success')));
+    }
+
+    /**
+     * See Api\AccessoriesController::adjustQuantity for the shape/contract.
+     */
+    public function adjustQuantity(AdjustQuantityRequest $request, Component $component): JsonResponse
+    {
+        $this->authorize('update', $component);
+
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['components'],
+                self::$map_file_prefix['components'].'-'.$component->id,
+                $request->file('file'),
+            );
+        }
+
+        try {
+            $component->adjustQuantity(
+                (int) $request->input('amount'),
+                $request->input('note'),
+                $request->input('order_number'),
+                $filename,
+            );
+        } catch (DomainException) {
+            return response()->json(
+                Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                422,
+            );
+        }
+
+        return response()->json(
+            Helper::formatStandardApiResponse('success', $component->fresh(), trans('general.adjust_quantity_success')),
+        );
     }
 
     /**
