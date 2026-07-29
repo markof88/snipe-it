@@ -401,6 +401,7 @@ class ActionlogsTransformer
             ActionType::AddSeats->value,
             ActionType::DeleteSeats->value,
             ActionType::QuantityAdjust->value,
+            ActionType::Create->value,
         ])) {
             return null;
         }

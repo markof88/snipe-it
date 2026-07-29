@@ -15,6 +15,7 @@ use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\Setting;
 use App\Models\User;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -205,18 +206,37 @@ class ConsumablesController extends Controller
     {
         $this->authorize('update', Consumable::class);
         $consumable = Consumable::findOrFail($id);
-        // qty, order_number, and supplier_id are not editable on update.
-        // See Consumable::getOrderNumberAttribute /
-        // getSupplierIdAttribute for rationale.
-        $consumable->fill($request->except(['qty', 'order_number', 'supplier_id']));
+
+        // See Api\AccessoriesController::update for the qty / order_number
+        // / supplier_id contract. Same logic mirrored here.
+        $qtyBefore = (int) $consumable->qty;
+        $qtyRequested = $request->has('qty') ? (int) $request->input('qty') : $qtyBefore;
+        $qtyDelta = $qtyRequested - $qtyBefore;
+
+        $consumable->fill($request->except(['qty', 'order_number']));
         $consumable->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $consumable = $request->handleImages($consumable);
 
-        if ($consumable->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
+        if (! $consumable->save()) {
+            return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        if ($qtyDelta !== 0) {
+            try {
+                $consumable->adjustQuantity(
+                    $qtyDelta,
+                    $request->input('note') ?: "API qty change: {$qtyBefore} → {$qtyRequested}",
+                    $request->input('order_number'),
+                );
+            } catch (DomainException) {
+                return response()->json(
+                    Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                    422,
+                );
+            }
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
     }
 
     /**

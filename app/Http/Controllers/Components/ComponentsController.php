@@ -155,9 +155,10 @@ class ComponentsController extends Controller
     {
         $this->authorize('update', $component);
 
-        // qty, order_number, and supplier_id are intentionally NOT
-        // accepted on update. See AccessoriesController::update for
-        // rationale.
+        // qty and order_number are intentionally NOT accepted on update.
+        // See AccessoriesController::update for rationale. supplier_id is
+        // editable again (imperfect single-value semantics accepted for
+        // the info-panel display).
         $component->name = $request->input('name');
         $component->category_id = $request->input('category_id');
         $component->manufacturer_id = $request->input('manufacturer_id');
@@ -165,6 +166,7 @@ class ComponentsController extends Controller
         $component->location_id = $request->input('location_id');
         $component->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $component->min_amt = $request->input('min_amt');
+        $component->supplier_id = $request->input('supplier_id');
         $component->serial = $request->input('serial');
         $component->purchase_date = $request->input('purchase_date');
         $component->purchase_cost = request('purchase_cost');

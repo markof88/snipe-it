@@ -164,15 +164,17 @@ class ConsumablesController extends Controller
     {
         $this->authorize($consumable);
 
-        // qty, order_number, and supplier_id are intentionally NOT
-        // accepted on update. See AccessoriesController::update for
-        // rationale.
+        // qty and order_number are intentionally NOT accepted on update.
+        // See AccessoriesController::update for rationale. supplier_id is
+        // editable again (imperfect single-value semantics accepted for
+        // the info-panel display).
         $consumable->name = $request->input('name');
         $consumable->category_id = $request->input('category_id');
         $consumable->location_id = $request->input('location_id');
         $consumable->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $consumable->min_amt = $request->input('min_amt');
         $consumable->manufacturer_id = $request->input('manufacturer_id');
+        $consumable->supplier_id = $request->input('supplier_id');
         $consumable->model_number = $request->input('model_number');
         $consumable->item_no = $request->input('item_no');
         $consumable->purchase_date = $request->input('purchase_date');

@@ -14,6 +14,7 @@ use App\Models\Company;
 use App\Models\Component;
 use App\Models\Setting;
 use Carbon\Carbon;
+use DomainException;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -217,18 +218,37 @@ class ComponentsController extends Controller
     {
         $this->authorize('update', Component::class);
         $component = Component::findOrFail($id);
-        // qty, order_number, and supplier_id are not editable on update.
-        // See Component::getOrderNumberAttribute /
-        // getSupplierIdAttribute for rationale.
-        $component->fill($request->except(['qty', 'order_number', 'supplier_id']));
+
+        // See Api\AccessoriesController::update for the qty / order_number
+        // / supplier_id contract. Same logic mirrored here.
+        $qtyBefore = (int) $component->qty;
+        $qtyRequested = $request->has('qty') ? (int) $request->input('qty') : $qtyBefore;
+        $qtyDelta = $qtyRequested - $qtyBefore;
+
+        $component->fill($request->except(['qty', 'order_number']));
         $component->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $component = $request->handleImages($component);
 
-        if ($component->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $component, trans('admin/components/message.update.success')));
+        if (! $component->save()) {
+            return response()->json(Helper::formatStandardApiResponse('error', null, $component->getErrors()));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $component->getErrors()));
+        if ($qtyDelta !== 0) {
+            try {
+                $component->adjustQuantity(
+                    $qtyDelta,
+                    $request->input('note') ?: "API qty change: {$qtyBefore} → {$qtyRequested}",
+                    $request->input('order_number'),
+                );
+            } catch (DomainException) {
+                return response()->json(
+                    Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                    422,
+                );
+            }
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success', $component, trans('admin/components/message.update.success')));
     }
 
     /**

@@ -163,21 +163,23 @@ class AccessoriesController extends Controller
 
         if ($accessory = Accessory::find($accessory->id)) {
 
-            // qty, order_number, and supplier_id are intentionally NOT
-            // accepted on update. On-hand qty is managed via the
-            // adjust-quantity modal (see AdjustsQuantity trait); each
-            // change becomes a QuantityAdjust action_log entry rather
-            // than a silent overwrite. order_number and supplier_id are
-            // captured onto the create action_log at create time — a
-            // single value for either on many-batches inventory is
-            // misleading, so both are hidden by model accessors and any
-            // input here is ignored.
+            // qty and order_number are intentionally NOT accepted on
+            // update. On-hand qty is managed via the adjust-quantity
+            // modal (see AdjustsQuantity trait); each change becomes a
+            // QuantityAdjust action_log entry rather than a silent
+            // overwrite. order_number is captured onto the create
+            // action_log at create time and onto QuantityAdjust log
+            // entries thereafter — a single value on multi-batch
+            // inventory is misleading, so the model accessor hides it.
+            // supplier_id remains editable (imperfect single-value
+            // semantics accepted for the info-panel display).
             $accessory->name = request('name');
             $accessory->location_id = request('location_id');
             $accessory->min_amt = request('min_amt');
             $accessory->category_id = request('category_id');
             $accessory->company_id = Company::getIdForCurrentUser(request('company_id'));
             $accessory->manufacturer_id = request('manufacturer_id');
+            $accessory->supplier_id = request('supplier_id');
             $accessory->model_number = request('model_number');
             $accessory->purchase_date = request('purchase_date');
             $accessory->purchase_cost = request('purchase_cost');

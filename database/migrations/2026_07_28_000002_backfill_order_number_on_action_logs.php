@@ -4,15 +4,25 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Backfill action_logs.order_number for existing accessory / consumable /
- * component create + update entries. Uses the item's CURRENT order_number,
- * so any log whose item has since been edited will pick up the new value
- * rather than the value at the time of the log. Acceptable trade-off for
- * a one-time historical fix; new log entries carry the accurate value
- * because the observers now capture it at write time.
+ * Backfill for existing accessory / consumable / component action_logs.
  *
- * Only touches rows where order_number is null so re-running the migration
- * is a no-op and doesn't clobber values set by the observer.
+ * Two fields get filled from the parent's current row:
+ *
+ * 1. order_number on create and update rows. The parent's stored value
+ *    replaces null in the log. Rows where the observer eventually
+ *    populated order_number correctly stay untouched (idempotent via
+ *    whereNull).
+ * 2. quantity on create rows. The observers only started capturing the
+ *    initial on-hand qty at write time in the AdjustsQuantity work, so
+ *    any pre-existing create log has quantity = 0. Backfill from the
+ *    parent's current qty column. Only touches rows where quantity is
+ *    null or 0 so re-runs and observer-written rows stay untouched.
+ *
+ * Both use the item's CURRENT parent-column state, not the true
+ * at-log-time state — any item edited or adjusted since the log was
+ * written picks up the newer value. Acceptable one-time trade-off;
+ * new log entries are accurate because the observers now capture at
+ * write time.
  */
 return new class extends Migration
 {
@@ -32,6 +42,20 @@ return new class extends Migration
                 ->update([
                     'order_number' => DB::raw(
                         "(SELECT order_number FROM {$prefix}{$table} "
+                        ."WHERE {$prefix}{$table}.id = {$prefix}action_logs.item_id "
+                        .'LIMIT 1)'
+                    ),
+                ]);
+
+            DB::table('action_logs')
+                ->where('item_type', $modelClass)
+                ->where('action_type', 'create')
+                ->where(function ($q) {
+                    $q->whereNull('quantity')->orWhere('quantity', 0);
+                })
+                ->update([
+                    'quantity' => DB::raw(
+                        "(SELECT qty FROM {$prefix}{$table} "
                         ."WHERE {$prefix}{$table}.id = {$prefix}action_logs.item_id "
                         .'LIMIT 1)'
                     ),

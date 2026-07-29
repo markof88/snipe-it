@@ -22,7 +22,7 @@
                         {{-- min is populated by snipeit.js when the modal opens (–available). The
                              browser stepper then refuses to go below and the built-in
                              constraint-validation message surfaces if a user types past it. --}}
-                        <input type="number" class="form-control" id="adjustQuantityAmount" name="amount" step="1" required>
+                        <input type="number" class="form-control" id="adjustQuantityAmount" name="amount" step="1" data-rule-notzero="true" required>
                         <p class="help-block">{{ trans('general.adjust_quantity_amount_help') }}</p>
                     </div>
 

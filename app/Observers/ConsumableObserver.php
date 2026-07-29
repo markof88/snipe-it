@@ -54,7 +54,15 @@ class ConsumableObserver
         $logAction->item_id = $consumable->id;
         $logAction->created_at = date('Y-m-d H:i:s');
         $logAction->created_by = auth()->id();
-        $logAction->order_number = $consumable->order_number;
+        // See AccessoryObserver::created for the getAttributes() rationale
+        // (getRawOriginal is empty during the `created` event because
+        // syncOriginal hasn't run yet on a fresh model).
+        $attrs = $consumable->getAttributes();
+        $logAction->order_number = $attrs['order_number'] ?? null;
+        // Capture the initial on-hand qty so the create log gives auditors
+        // a "started with N units" anchor point. Subsequent QuantityAdjust
+        // logs record deltas, not running totals.
+        $logAction->quantity = (int) ($attrs['qty'] ?? 0);
         if ($consumable->imported) {
             $logAction->setActionSource('importer');
         }

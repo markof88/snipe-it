@@ -18,6 +18,7 @@ use App\Models\Company;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -271,19 +272,43 @@ class AccessoriesController extends Controller
     {
         $this->authorize('update', Accessory::class);
         $accessory = Accessory::findOrFail($id);
-        // qty, order_number, and supplier_id are not editable on update
-        // — see Accessory::getOrderNumberAttribute /
-        // getSupplierIdAttribute for rationale. qty changes go through
-        // the adjust-quantity endpoint.
-        $accessory->fill($request->except(['qty', 'order_number', 'supplier_id']));
+
+        // Payload shape is preserved for API back-compat: `qty`,
+        // `order_number`, and `supplier_id` all remain accepted keys.
+        // supplier_id flows through fill() like any other field now that
+        // the model accessor is gone. `qty` gets pulled off the fill and
+        // routed through adjustQuantity() below so any change writes a
+        // QuantityAdjust action_log entry rather than silently overwriting.
+        // `order_number` on the parent stays hidden by the accessor, but
+        // rides along on the QuantityAdjust log when the qty also changed.
+        $qtyBefore = (int) $accessory->qty;
+        $qtyRequested = $request->has('qty') ? (int) $request->input('qty') : $qtyBefore;
+        $qtyDelta = $qtyRequested - $qtyBefore;
+
+        $accessory->fill($request->except(['qty', 'order_number']));
         $accessory->company_id = Company::getIdForCurrentUser($request->input('company_id'));
         $accessory = $request->handleImages($accessory);
 
-        if ($accessory->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.update.success')));
+        if (! $accessory->save()) {
+            return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()));
+        if ($qtyDelta !== 0) {
+            try {
+                $accessory->adjustQuantity(
+                    $qtyDelta,
+                    $request->input('note') ?: "API qty change: {$qtyBefore} → {$qtyRequested}",
+                    $request->input('order_number'),
+                );
+            } catch (DomainException) {
+                return response()->json(
+                    Helper::formatStandardApiResponse('error', null, trans('general.adjust_quantity_below_zero')),
+                    422,
+                );
+            }
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.update.success')));
     }
 
     /**
