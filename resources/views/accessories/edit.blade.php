@@ -42,16 +42,11 @@
                 categoryType="accessory"
             />
 
-            {{-- supplier_id is create-only. Same rationale as
-                 order_number: a single supplier on many-batches inventory
-                 misrepresents where units came from. --}}
-            @if (! $item->id)
-                <x-input.supplier-select
-                    :label="trans('general.supplier')"
-                    name="supplier_id"
-                    :selected="old('supplier_id', $item->getRawOriginal('supplier_id'))"
-                />
-            @endif
+            <x-input.supplier-select
+                :label="trans('general.supplier')"
+                name="supplier_id"
+                :selected="old('supplier_id', $item->supplier_id)"
+            />
 
             <x-input.manufacturer-select
                 :label="trans('general.manufacturer')"

@@ -50,14 +50,11 @@
 
                 <x-input.minimum-quantity :item="$item"/>
 
-                {{-- Create-only. See accessories/edit for rationale. --}}
-                @if (! $item->id)
-                    <x-input.supplier-select
-                        :label="trans('general.supplier')"
-                        name="supplier_id"
-                        :selected="old('supplier_id', $item->getRawOriginal('supplier_id'))"
-                    />
-                @endif
+                <x-input.supplier-select
+                    :label="trans('general.supplier')"
+                    name="supplier_id"
+                    :selected="old('supplier_id', $item->supplier_id)"
+                />
 
                 <x-input.manufacturer-select
                     :label="trans('general.manufacturer')"

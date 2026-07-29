@@ -335,14 +335,6 @@ class Component extends SnipeModel
     }
 
     /**
-     * See Accessory::getSupplierIdAttribute for the rationale.
-     */
-    public function getSupplierIdAttribute(): ?int
-    {
-        return null;
-    }
-
-    /**
      * @return BelongsToMany
      *
      * This allows us to get the assets with assigned components without the company restriction

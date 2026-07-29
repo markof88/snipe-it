@@ -363,14 +363,6 @@ class Consumable extends SnipeModel
     }
 
     /**
-     * See Accessory::getSupplierIdAttribute for the rationale.
-     */
-    public function getSupplierIdAttribute(): ?int
-    {
-        return null;
-    }
-
-    /**
      * Checks the number of available consumables
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]

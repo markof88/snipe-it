@@ -427,24 +427,6 @@ class Accessory extends SnipeModel
     }
 
     /**
-     * Same treatment as order_number: a single supplier on many-batches
-     * inventory misrepresents where units actually came from. Restocks
-     * can (and typically do) come from different suppliers over time.
-     * Returning null on the FK hides supplier_id from every display AND
-     * makes the `supplier` BelongsTo relation resolve to null (Eloquent
-     * reads the FK via getAttribute, which routes through this
-     * accessor), so info-panel + API surfaces hide automatically without
-     * any per-model check on the view side.
-     *
-     * OrderSupplier scope still works because it JOINs on the raw
-     * column in SQL rather than reading the attribute in PHP.
-     */
-    public function getSupplierIdAttribute(): ?int
-    {
-        return null;
-    }
-
-    /**
      * Check how many items of an accessory remain.
      *
      * In order to use this model method, you MUST call withCount('checkouts as checkouts_count')

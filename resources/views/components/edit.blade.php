@@ -74,14 +74,11 @@
                 :selected="old('location_id', $item->location_id)"
             />
 
-            {{-- Create-only. See accessories/edit for rationale. --}}
-            @if (! $item->id)
-                <x-input.supplier-select
-                    :label="trans('general.supplier')"
-                    name="supplier_id"
-                    :selected="old('supplier_id', $item->getRawOriginal('supplier_id'))"
-                />
-            @endif
+            <x-input.supplier-select
+                :label="trans('general.supplier')"
+                name="supplier_id"
+                :selected="old('supplier_id', $item->supplier_id)"
+            />
 
             {{-- Create-only. See accessories/edit for rationale. --}}
             @if (! $item->id)
