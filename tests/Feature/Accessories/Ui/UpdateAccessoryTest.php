@@ -90,15 +90,12 @@ class UpdateAccessoryTest extends TestCase
                 'qty' => 5,
             ]);
 
-        // qty, order_number, and supplier_id are no longer editable via
-        // the accessory edit form; any values in the request are ignored
-        // server-side. qty changes go through the adjust-quantity modal
-        // (see AdjustAccessoryQuantityTest); order_number and
-        // supplier_id are captured onto the create action_log at create
-        // time. Submitting them here just proves they don't persist
-        // through update.
+        // qty and order_number are still ignored by the web edit form
+        // (qty flows through the adjust-quantity modal, order_number
+        // stays hidden by the model accessor). supplier_id is now
+        // editable again — imperfect single-value semantics accepted
+        // for the info-panel display.
         $originalOrderNumber = $accessory->getRawOriginal('order_number');
-        $originalSupplierId = $accessory->getRawOriginal('supplier_id');
 
         $this->actingAs(User::factory()->editAccessories()->create())
             ->put(route('accessories.update', $accessory), [
@@ -123,7 +120,7 @@ class UpdateAccessoryTest extends TestCase
             'company_id' => $companyB->id,
             'name' => 'Changed Name',
             'category_id' => $categoryB->id,
-            'supplier_id' => $originalSupplierId, // untouched by update
+            'supplier_id' => $supplierB->id,
             'manufacturer_id' => $manufacturerB->id,
             'location_id' => $locationB->id,
             'model_number' => 'changed 1234',
