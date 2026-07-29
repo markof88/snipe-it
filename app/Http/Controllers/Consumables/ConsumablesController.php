@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\ImageUploadRequest;
 use App\Http\Requests\StoreConsumableRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Models\Company;
 use App\Models\Consumable;
 use DomainException;
@@ -260,11 +261,21 @@ class ConsumablesController extends Controller
     {
         $this->authorize('update', $consumable);
 
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['consumables'],
+                self::$map_file_prefix['consumables'].'-'.$consumable->id,
+                $request->file('file'),
+            );
+        }
+
         try {
             $consumable->adjustQuantity(
                 (int) $request->input('amount'),
                 $request->input('note'),
                 $request->input('order_number'),
+                $filename,
             );
         } catch (DomainException) {
             return redirect()->back()->with('error', trans('general.adjust_quantity_below_zero'));

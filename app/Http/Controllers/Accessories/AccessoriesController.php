@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\ImageUploadRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Models\Accessory;
 use App\Models\Company;
 use DomainException;
@@ -258,11 +259,21 @@ class AccessoriesController extends Controller
     {
         $this->authorize('update', $accessory);
 
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['accessories'],
+                self::$map_file_prefix['accessories'].'-'.$accessory->id,
+                $request->file('file'),
+            );
+        }
+
         try {
             $accessory->adjustQuantity(
                 (int) $request->input('amount'),
                 $request->input('note'),
                 $request->input('order_number'),
+                $filename,
             );
         } catch (DomainException) {
             return redirect()->back()->with('error', trans('general.adjust_quantity_below_zero'));

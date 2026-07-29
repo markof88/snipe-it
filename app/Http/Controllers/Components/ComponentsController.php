@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AdjustQuantityRequest;
 use App\Http\Requests\StoreComponentRequest;
 use App\Http\Requests\UpdateComponentRequest;
+use App\Http\Requests\UploadFileRequest;
 use App\Models\Company;
 use App\Models\Component;
 use DomainException;
@@ -259,11 +260,21 @@ class ComponentsController extends Controller
     {
         $this->authorize('update', $component);
 
+        $filename = null;
+        if ($request->hasFile('file')) {
+            $filename = app(UploadFileRequest::class)->handleFile(
+                self::$map_storage_path['components'],
+                self::$map_file_prefix['components'].'-'.$component->id,
+                $request->file('file'),
+            );
+        }
+
         try {
             $component->adjustQuantity(
                 (int) $request->input('amount'),
                 $request->input('note'),
                 $request->input('order_number'),
+                $filename,
             );
         } catch (DomainException) {
             return redirect()->back()->with('error', trans('general.adjust_quantity_below_zero'));

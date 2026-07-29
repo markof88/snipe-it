@@ -182,6 +182,10 @@ $(function () {
         $amount.val('');
         $modal.find('#adjustQuantityOrder').val('');
         $modal.find('#adjustQuantityNote').val('');
+        $modal.find('#adjustQuantityFile').val('');
+        // js-uploadFile paints selected filenames into #{id}-info; clear it too
+        // so stale filenames from a previous open don't linger in the new modal.
+        $modal.find('#adjustQuantityFile-info').empty();
         $modal.modal('show');
     });
 

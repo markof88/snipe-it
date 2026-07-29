@@ -9,7 +9,7 @@
                     <small class="adjust-quantity-item-name text-muted"></small>
                 </h4>
             </div>
-            <form id="adjustQuantityForm" method="POST" action="">
+            <form id="adjustQuantityForm" method="POST" action="" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <p>
@@ -33,10 +33,10 @@
 
                     <div class="form-group">
                         <label for="adjustQuantityNote">{{ trans('general.notes') }}</label>
-                        {{-- maxlength mirrors the server rule (max:65535 in AdjustQuantityRequest)
-                             so the browser refuses characters past the limit before submit. --}}
                         <textarea class="form-control" id="adjustQuantityNote" name="note" rows="3" maxlength="65535" required></textarea>
                     </div>
+
+                    <x-input.file-upload inputId="adjustQuantityFile" name="file" :multiple="false"/>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default pull-left" data-dismiss="modal">{{ trans('button.cancel') }}</button>

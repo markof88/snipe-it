@@ -7,6 +7,8 @@ use App\Models\Accessory;
 use App\Models\AccessoryCheckout;
 use App\Models\Actionlog;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdjustAccessoryQuantityTest extends TestCase
@@ -145,5 +147,42 @@ class AdjustAccessoryQuantityTest extends TestCase
                 'note' => 'nope',
             ])
             ->assertSessionHasErrors('amount');
+    }
+
+    public function test_uploaded_receipt_attaches_to_the_same_log_row_and_surfaces_in_files_tab()
+    {
+        Storage::fake();
+
+        $actor = User::factory()->editAccessories()->create();
+        $accessory = Accessory::factory()->create(['qty' => 5]);
+        $uploadsBefore = $accessory->uploads()->count();
+
+        $this->actingAs($actor)
+            ->post(route('accessories.adjust-quantity', $accessory), [
+                'amount' => 3,
+                'note' => 'restock with invoice',
+                'order_number' => 'PO-99',
+                'file' => UploadedFile::fake()->create('invoice-99.pdf', 32, 'application/pdf'),
+            ])
+            ->assertRedirect();
+
+        $log = Actionlog::where('item_type', Accessory::class)
+            ->where('item_id', $accessory->id)
+            ->where('action_type', ActionType::QuantityAdjust->value)
+            ->latest('id')
+            ->firstOrFail();
+
+        // Attachment lives on the QuantityAdjust log, not a separate
+        // 'uploaded' entry (so the history table shows one consolidated line).
+        $this->assertNotNull($log->filename, 'Uploaded receipt filename must be attached to the QuantityAdjust log row.');
+        $this->assertStringEndsWith('.pdf', $log->filename);
+        $this->assertSame(0, Actionlog::where('item_type', Accessory::class)
+            ->where('item_id', $accessory->id)
+            ->where('action_type', 'uploaded')
+            ->count(), 'No separate uploaded log entry should have been created.');
+
+        // And the same log row surfaces in uploads() so the Files tab shows it.
+        $this->assertSame($uploadsBefore + 1, $accessory->uploads()->count());
+        $this->assertTrue($accessory->uploads()->where('id', $log->id)->exists());
     }
 }

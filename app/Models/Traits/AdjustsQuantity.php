@@ -67,7 +67,7 @@ trait AdjustsQuantity
      *                         (which extends RuntimeException) as a
      *                         below-floor violation.
      */
-    public function adjustQuantity(int $delta, string $note, ?string $orderNumber = null): void
+    public function adjustQuantity(int $delta, string $note, ?string $orderNumber = null, ?string $filename = null): void
     {
         if ($delta === 0) {
             return;
@@ -84,7 +84,7 @@ trait AdjustsQuantity
             );
         }
 
-        DB::transaction(function () use ($delta, $column, $note, $orderNumber) {
+        DB::transaction(function () use ($delta, $column, $note, $orderNumber, $filename) {
             // Use the query builder directly (not $this->increment) so
             // the model's `updated` event doesn't fire. Firing it would
             // write a second "update" action_log entry (with log_meta of
@@ -105,6 +105,12 @@ trait AdjustsQuantity
             $log->note = $note;
             $log->order_number = $orderNumber;
             $log->quantity = $delta;
+            // Receipt/invoice attaches to the same log row rather than a
+            // separate 'uploaded' entry, so the history table shows one
+            // consolidated line per replenishment. The caller handles the
+            // actual file save via UploadFileRequest::handleFile and just
+            // passes the returned filename through.
+            $log->filename = $filename;
             $log->logaction(ActionType::QuantityAdjust->value);
         });
     }
