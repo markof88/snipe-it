@@ -62,14 +62,13 @@ class UpdateConsumableTest extends TestCase
         $consumable = Consumable::factory()->create();
         $originalQty = (int) $consumable->qty;
         $originalOrderNumber = $consumable->getRawOriginal('order_number');
+        $newSupplier = Supplier::factory()->create();
 
-        // qty, order_number, and supplier_id are no longer editable via
-        // update; any values in the request are ignored server-side. qty
-        // changes go through the adjust-quantity modal (see
-        // AdjustConsumableQuantityTest); order_number and supplier_id
-        // are captured onto the create action_log at create time.
-        $originalSupplierId = $consumable->getRawOriginal('supplier_id');
-
+        // qty and order_number are still ignored by the web edit form
+        // (qty flows through the adjust-quantity modal, order_number
+        // stays hidden by the model accessor). supplier_id is editable
+        // again — imperfect single-value semantics accepted for the
+        // info-panel display.
         $editable = [
             'company_id' => Company::factory()->create()->id,
             'name' => 'My Consumable',
@@ -90,14 +89,14 @@ class UpdateConsumableTest extends TestCase
                 'category_type' => 'consumable',
                 'order_number' => 'ignored-908',
                 'qty' => '9999',
-                'supplier_id' => Supplier::factory()->create()->id,
+                'supplier_id' => $newSupplier->id,
             ])
             ->assertRedirect(route('consumables.index'));
 
         $this->assertDatabaseHas('consumables', $editable + [
             'qty' => $originalQty,
             'order_number' => $originalOrderNumber,
-            'supplier_id' => $originalSupplierId,
+            'supplier_id' => $newSupplier->id,
         ]);
     }
 }

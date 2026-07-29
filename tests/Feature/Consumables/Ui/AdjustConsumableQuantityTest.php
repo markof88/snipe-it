@@ -6,6 +6,8 @@ use App\Enums\ActionType;
 use App\Models\Actionlog;
 use App\Models\Consumable;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdjustConsumableQuantityTest extends TestCase
@@ -76,5 +78,39 @@ class AdjustConsumableQuantityTest extends TestCase
                 'amount' => 2,
             ])
             ->assertSessionHasErrors('note');
+    }
+
+    public function test_uploaded_receipt_attaches_to_the_same_log_row_and_surfaces_in_files_tab()
+    {
+        Storage::fake();
+
+        $actor = User::factory()->editConsumables()->create();
+        $consumable = Consumable::factory()->create(['qty' => 5]);
+        $uploadsBefore = $consumable->uploads()->count();
+
+        $this->actingAs($actor)
+            ->post(route('consumables.adjust-quantity', $consumable), [
+                'amount' => 3,
+                'note' => 'restock with invoice',
+                'order_number' => 'PO-99',
+                'file' => UploadedFile::fake()->create('invoice-99.pdf', 32, 'application/pdf'),
+            ])
+            ->assertRedirect();
+
+        $log = Actionlog::where('item_type', Consumable::class)
+            ->where('item_id', $consumable->id)
+            ->where('action_type', ActionType::QuantityAdjust->value)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertNotNull($log->filename, 'Uploaded receipt filename must be attached to the QuantityAdjust log row.');
+        $this->assertStringEndsWith('.pdf', $log->filename);
+        $this->assertSame(0, Actionlog::where('item_type', Consumable::class)
+            ->where('item_id', $consumable->id)
+            ->where('action_type', 'uploaded')
+            ->count(), 'No separate uploaded log entry should have been created.');
+
+        $this->assertSame($uploadsBefore + 1, $consumable->uploads()->count());
+        $this->assertTrue($consumable->uploads()->where('id', $log->id)->exists());
     }
 }
